@@ -1,4 +1,5 @@
 from exceptions.exceptions import *
+import collections
 
 
 def check_response_decorator(func):
@@ -9,7 +10,7 @@ def check_response_decorator(func):
             raise UnAuthorizationError()
 
         datasets = response.json()
-        if "Message" in datasets:
+        if isinstance(datasets, dict) and "Message" in datasets:
             raise InValidRequestError(datasets["Message"])
         else:
             return datasets

@@ -55,3 +55,13 @@ class TestApi(unittest.TestCase):
         actual = self.api.get_dataset_info(495)
 
         self.assertEqual(result, actual)
+
+    def test_dataset_row_count(self):
+        response = get(url="https://apidata.mos.ru/v1/datasets/495/count", params={
+            "api_key": "068b1c994457c79ff1f857bcd687b964",
+        })
+
+        result = response.json()
+        actual = self.api.get_dataset_count_row(495)
+
+        self.assertEqual(result, actual)
