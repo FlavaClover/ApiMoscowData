@@ -1,14 +1,18 @@
-from requests import get, post
+from requests import get, post, Response
 from decorators import *
 
 
 class ApiMoscowData:
     def __init__(self, api_key: str):
-        """ Стандартный конструктор """
+        """
+        Стандартный конструктор
+
+        :param api_key: ключ для доступа к API
+        """
         self.__api_key = api_key
         self.__base_url = "https://apidata.mos.ru"
 
-    def get_version(self) -> None:
+    def get_version(self) -> str:
         """ Добавление верссии в базовый url """
         response = get(self.__base_url + "/version")
         version = response.json()["Version"]
@@ -21,6 +25,11 @@ class ApiMoscowData:
 
     @staticmethod
     def __get_params(**kwargs) -> dict:
+        """
+        Функция для обработки параметров запроса к API. Принятые параметры возвращаются ввиде словаря
+
+        :param kwargs: параметры запроса
+        """
         params = dict()
         if "top" in kwargs:
             params["$top"] = kwargs["top"]
@@ -39,7 +48,7 @@ class ApiMoscowData:
 
     @check_response_decorator
     def get_all_datasets(self, top=None, skip=None,
-                         inline_count=None, order_by=None, filter=None, foreign=None):
+                         inline_count=None, order_by=None, filter=None, foreign=None) -> Response:
         """
         Взятие наборов данных
 
@@ -51,8 +60,6 @@ class ApiMoscowData:
         (https://www.odata.org/documentation/odata-version-2-0/uri-conventions/).
         :param foreign:	true - возвращает список англоязычных наборов данных;
         false- возвращает список русскоязычных наборов данных (значение по умолчанию).
-
-        :return: список наборов данных
         """
         params = self.__get_params(top=top, skip=skip, inlinecount=inline_count,
                                    orderby=order_by, filter=filter, foreign=foreign)
@@ -62,7 +69,7 @@ class ApiMoscowData:
 
     @check_response_decorator
     def get_all_dataset_with_specific_fields(self, fields: list, top=None, skip=None,
-                                             inline_count=None, order_by=None, filter=None, foreign=None):
+                                             inline_count=None, order_by=None, filter=None, foreign=None) -> Response:
         """
         Взятие наборов данных c определенными полями
 
@@ -75,8 +82,6 @@ class ApiMoscowData:
         (https://www.odata.org/documentation/odata-version-2-0/uri-conventions/).
         :param foreign:	true - возвращает список англоязычных наборов данных;
         false- возвращает список русскоязычных наборов данных (значение по умолчанию).
-
-        :return: список наборов данных с определенными полями
         """
         params = self.__get_params(top=top, skip=skip, inlinecount=inline_count,
                                    orderby=order_by, filter=filter, foreign=foreign)
@@ -86,27 +91,52 @@ class ApiMoscowData:
         return post(url=self.base_url + "/datasets", params=params, json=fields)
 
     @check_response_decorator
-    def get_dataset_info(self, id_data, fields=None):
+    def get_dataset_info(self, id_dataset, fields=None) -> Response:
         """
         Взятие информации о конкретном наборе данных
 
-        :param id_data: номер набора
+        :param id_dataset: номер набора
         :param fields: нужные поля
-        :return: информация о наборе данных
         """
         if not fields:
-            return get(url=self.base_url + f"/datasets/{id_data}", params={"api_key": self.__api_key})
+            return get(url=self.base_url + f"/datasets/{id_dataset}", params={"api_key": self.__api_key})
         else:
-            return post(url=self.base_url + f"/datasets/{id_data}", params={"api_key": self.__api_key},
+            return post(url=self.base_url + f"/datasets/{id_dataset}", params={"api_key": self.__api_key},
                         json=fields)
 
     @check_response_decorator
-    def get_dataset_object(self, id_data):
-        return get(url=self.base_url + f"/datasets/{id_data}", params={"api_key": self.__api_key})
+    def get_dataset_count_rows(self, id_dataset: int) -> Response:
+        """
+        Получения количества строк в наборе информации
+        :param id_dataset: номер набора информации
+        :return:
+        """
+        return get(url=self.base_url + f"/datasets/{id_dataset}/count", params={"api_key": self.__api_key})
 
     @check_response_decorator
-    def get_dataset_count_row(self, id_data):
-        return get(url=self.base_url + f"/datasets/{id_data}/count", params={"api_key": self.__api_key})
+    def get_dataset_rows(self, id_dataset, field=None, top=None, skip=None, order_by=None, filter=None) -> Response:
+        """
+        Получение данных определенного набора
+
+        :param id_dataset: Номер набора
+        :param field: Список нужных полей. Если параметр пустой, то будут получены все поля
+        :param top: Ограничивает количество возвращаемых записей. Без указания данного параметра выводятся все записи.
+        :param skip: Позволяет указать количество записей, которые следует пропустить в ответе.
+        :param order_by: Указывает поле для сортировки результирующего списка.
+        :param filter: Позволяет производить фильтрацию данных по указанным значениям в конкретных атрибутах.
+        Атрибут в фильтре должен начинается с "Cells/". Используется оператор "eq", который ищет по частичному вхождению
+        (поиск чисел осуществляется по полному вхождению).
+        """
+        params = self.__get_params(top=top, skip=skip, orderby=order_by, filter=filter)
+        params["api_key"] = self.__api_key
+        if not field:
+            return get(url=self.base_url + f"/datasets/{id_dataset}/rows", params=params)
+        else:
+            return post(url=self.base_url + f"/datasets/{id_dataset}/rows", params=params, json=field)
 
 
-
+if __name__ == "__main__":
+    api = ApiMoscowData("068b1c994457c79ff1f857bcd687b964")
+    data = api.get_dataset_rows(658, top=3, field=["global_id"])
+    for d in data:
+        print(d)

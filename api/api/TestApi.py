@@ -62,6 +62,6 @@ class TestApi(unittest.TestCase):
         })
 
         result = response.json()
-        actual = self.api.get_dataset_count_row(495)
+        actual = self.api.get_dataset_count_rows(495)
 
         self.assertEqual(result, actual)

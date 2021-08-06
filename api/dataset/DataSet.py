@@ -1,2 +1,0 @@
-class DataSet:
-    pass
